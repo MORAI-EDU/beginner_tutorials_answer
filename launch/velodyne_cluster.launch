@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="beginner_tutorials" type="velodyne_cluster.py" name="velodyne_cluster"  />
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find beginner_tutorials)/rviz/velodyne_cluster.rviz" />
+</launch>
