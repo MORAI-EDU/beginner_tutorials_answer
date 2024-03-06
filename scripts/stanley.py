@@ -1,36 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import rospy, os
-import rospkg
 import numpy as np
 from math import cos,sin,pi,sqrt,pow,atan2
-
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry,Path
 from morai_msgs.msg import CtrlCmd, EgoVehicleStatus
 from tf.transformations import euler_from_quaternion
 
-#pid controller
-class pidControl:
-    def __init__(self):
-        self.p_gain = 0.3
-        self.i_gain = 0.07
-        self.d_gain = 0.03
-        self.prev_error = 0
-        self.i_control = 0
-        self.controlTime = 0.02
 
-    def pid(self,target_vel, current_vel):
-        error = target_vel - current_vel
-        p_control = self.p_gain * error
-        if error <= 5:
-            self.i_control += self.i_gain * error * self.controlTime
-        d_control = self.d_gain * (error-self.prev_error) / self.controlTime
-        output = p_control + self.i_control + d_control
-        self.prev_error = error
-        return output
-    
 class stanly_controller :
     def __init__(self):
         #subscribe and publish
@@ -40,12 +18,10 @@ class stanly_controller :
         rospy.Subscriber("Ego_topic", EgoVehicleStatus, self.status_callback)
         self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
         self.ctrl_cmd_msg = CtrlCmd()
-        self.ctrl_cmd_msg.longlCmdType = 1
-
+        self.ctrl_cmd_msg.longlCmdType = 2
         self.is_path = False
         self.is_odom = False
         self.is_status = False
-
         self.forward_point = Point()
         self.current_postion = Point()
         self.target_vel = 30.0
@@ -54,40 +30,29 @@ class stanly_controller :
         self.vehicle_length = 3
         self.k = 0.8 #stanley constant
         self.v_t = 1 #vel constant to get crosstrack error
-        self.damping_constant = 0.0 #damping constant
         self.prev_steering_angle = 0
 
-        self.pid_controller = pidControl()
-        
         rate = rospy.Rate(15) # 15hz
         while not rospy.is_shutdown():
-
             if self.is_path ==True and self.is_odom==True and self.is_status :
-                
                 vehicle_position=self.current_postion
                 self.is_look_forward_point= False
-
                 translation=[vehicle_position.x, vehicle_position.y]
-
                 #translation matrix global to local(vehicle)
                 t=np.array([
                         [cos(self.vehicle_yaw), -sin(self.vehicle_yaw),translation[0]],
                         [sin(self.vehicle_yaw),cos(self.vehicle_yaw),translation[1]],
                         [0                    ,0                    ,1            ]])
-
                 det_t=np.array([
                        [t[0][0],t[1][0],-(t[0][0]*translation[0]+t[1][0]*translation[1])],
                        [t[0][1],t[1][1],-(t[0][1]*translation[0]+t[1][1]*translation[1])],
                        [0      ,0      ,1                                               ]])
-                
-                
                 temp = np.zeros((2,2)) #for save local point of distant minimum path point
                 dis_min = 10000
                 j = 0
                 #roop all path to get distance minimun path point from vehicle
                 for num,i in enumerate(self.path.poses) :
                     path_point=i.pose.position
-
                     global_path_point=[path_point.x,path_point.y,1]
                     local_path_point=det_t.dot(global_path_point)
                     if local_path_point[0] < 0:
@@ -104,51 +69,29 @@ class stanly_controller :
                     if num == j + 1 :
                         temp[1][0] = local_path_point[0]
                         temp[1][1] = local_path_point[1]
-
                 if self.is_look_forward_point :
                     #get yaw_term through distance minimum path point
                     heading_error = atan2(temp[1][1] - temp[0][1], temp[1][0] - temp[0][0])
                     #get cross track error through distance minimum path point
                     cte = sin(self.vehicle_yaw)*(temp_global[0] - vehicle_position.x) - cos(self.vehicle_yaw)*(temp_global[1] - vehicle_position.y)
                     crosstrack_error = -atan2(self.k * cte, self.current_vel + self.v_t)
-                    # if temp[0][1] < 0 :
-                    #    crosstrack_error = -atan2(self.k * dis_min, self.current_vel + 1)
-                    # else :
-                    #    crosstrack_error = atan2(self.k * dis_min, self.current_vel + 1)
 
                     # get steering angle with heading_error anf crosstrack_error
                     steering_angle = heading_error + crosstrack_error
-                    #plus damping
-                    steering_angle = steering_angle - self.damping_constant * (steering_angle - self.prev_steering_angle)
-
+                    
                     #clip steering angle between (-30, 30) degree
                     steering_angle = np.clip(steering_angle, -pi/6, pi/6)
                     self.ctrl_cmd_msg.steering = steering_angle
-                    
-                    self.prev_steering_angle = steering_angle
-
-                    output = self.pid_controller.pid(self.target_vel, self.current_vel * 3.6)
-
-                    if output > 0:
-                        self.ctrl_cmd_msg.accel = output
-                        self.ctrl_cmd_msg.brake = 0
-                    else:
-                        self.ctrl_cmd_msg.accel = 0
-                        self.ctrl_cmd_msg.brake = - output
-
+                    self.ctrl_cmd_msg.velocity = self.target_vel
                     os.system('clear')
                     print("-------------------------------------")
                     print(" steering (deg) = ", self.ctrl_cmd_msg.steering * 180 / pi)
-                    print(" Accel (%) = ", 100 if self.ctrl_cmd_msg.accel * 100 >= 100 else self.ctrl_cmd_msg.accel * 100)
-                    print(" Brake (%) = ", 100 if self.ctrl_cmd_msg.brake * 100 >= 100 else self.ctrl_cmd_msg.brake * 100)
-                    print("-------------------------------------")                
-
+                    print(" velocity (kph) = ", self.ctrl_cmd_msg.velocity)
+                    print("-------------------------------------")
                     self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
-
                 else :
                     os.system('clear')
                     print("can't find local_forward_point")
-
             else :
                 os.system('clear')
                 if not self.is_path:
@@ -157,25 +100,23 @@ class stanly_controller :
                     print("[2] can't subscribe '/odom' topic...")
                 if not self.is_status:
                     print("[3] can't subscribe '/Ego_topic' topic")
-            
             self.is_path = self.is_odom = False
             rate.sleep()
-
+            
     #callback function for subscribe
     def status_callback(self, msg):
         self.is_status = True
         self.current_vel = msg.velocity.x
-
     def path_callback(self,msg):
         self.is_path=True
         self.path=msg
-
     def odom_callback(self,msg):
         self.is_odom=True
         odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
         _,_,self.vehicle_yaw=euler_from_quaternion(odom_quaternion)
         self.current_postion.x=msg.pose.pose.position.x
         self.current_postion.y=msg.pose.pose.position.y
+
 
 if __name__ == '__main__':
     try:
