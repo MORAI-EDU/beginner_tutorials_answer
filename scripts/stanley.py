@@ -16,7 +16,7 @@ class stanly_controller :
         rospy.Subscriber("local_path", Path, self.path_callback)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
         rospy.Subscriber("Ego_topic", EgoVehicleStatus, self.status_callback)
-        self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
+        self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd',CtrlCmd, queue_size=1)
         self.ctrl_cmd_msg = CtrlCmd()
         self.ctrl_cmd_msg.longlCmdType = 2
         self.is_path = False

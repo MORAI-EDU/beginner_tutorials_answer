@@ -6,7 +6,7 @@ from morai_msgs.msg import CtrlCmd
 class s_drive():
     def __init__(self):
         rospy.init_node('s_drive', anonymous=True)
-        cmd_pub = rospy.Publisher('/ctrl_cmd_0', CtrlCmd, queue_size=1)
+        cmd_pub = rospy.Publisher('/ctrl_cmd', CtrlCmd, queue_size=1)
         rate = rospy.Rate(30)
         cmd = CtrlCmd()
         cmd.longlCmdType = 2
