@@ -18,7 +18,7 @@ class path_pub :
 
         self.local_path_pub = rospy.Publisher('/local_path',Path, queue_size=1)
         
-        # 초기화
+        # initialize
         self.global_path_msg=Path()
         self.global_path_msg.header.frame_id='/map'
         

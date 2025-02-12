@@ -18,7 +18,7 @@ class GPSIMUParser:
         self.gps_sub = rospy.Subscriber("/gps", GPSMessage, self.navsat_callback)
         self.imu_sub = rospy.Subscriber("/imu", Imu, self.imu_callback)
         self.odom_pub = rospy.Publisher('/odom',Odometry, queue_size=1)
-        # 초기화
+        # initialize
         self.x, self.y = None, None
         self.is_imu=False
         self.is_gps=False
