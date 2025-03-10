@@ -16,7 +16,7 @@ class s_drive():
         rospy.init_node('collision_avoid', anonymous=True)
         
         # publisher
-        self.cmd_pub = rospy.Publisher('/ctrl_cmd_0', CtrlCmd, queue_size=1)
+        self.cmd_pub = rospy.Publisher('/ctrl_cmd', CtrlCmd, queue_size=1)
         
         # subscriber
         rospy.Subscriber('/CollisionData', CollisionData, self.collision_callback)
@@ -34,7 +34,7 @@ class s_drive():
         self.rate = rospy.Rate(10)
         self.ego_status = EgoVehicleStatus()
 
-        # 처음에 auto_mode , drive gear로 세팅
+        # Initially set to auto_mode and drive gear
         self.send_gear_cmd(Gear.D.value)
 
         while not rospy.is_shutdown():
@@ -46,7 +46,7 @@ class s_drive():
 
 
             if self.is_collision:
-                # 충돌 발생시 기어
+                # set Gear in case of collision
                 self.send_gear_cmd(Gear.R.value)
 
                 for _ in range(20):
@@ -59,7 +59,7 @@ class s_drive():
                 self.send_ctrl_cmd(0, 10)
                 self.rate.sleep()
 
-    # 충돌 메시지 콜백 함수
+    # Message callback function on collision
     def collision_callback(self, data):
         self.is_collision_data = True
 
@@ -69,14 +69,14 @@ class s_drive():
         else:
             self.is_collision = False
 
-    # EGO 차량 상태 정보 콜백 함수
+    # EGO vehicle status information callback function
     def ego_callback(self, data):
         self.is_ego = True
         self.ego_status = data
 
-    # 기어 변경 이벤트 메시지 세팅 함수
+    # Gear change event message function
     def send_gear_cmd(self, gear_mode):
-        # 기어 변경이 제대로 되기 위해서는 차량 속도가 약 0 이어야함
+        # For gear changes to work properly, the vehicle speed must be around 0.
         while( abs(self.ego_status.velocity.x) > 0.1):
             self.send_ctrl_cmd(0,0)
             self.rate.sleep()
@@ -88,7 +88,7 @@ class s_drive():
         gear_cmd_resp = self.event_cmd_srv(gear_cmd)
         rospy.loginfo(gear_cmd)
 
-    # ctrl_cmd 메시지 세팅 함수
+    # ctrl_cmd message setting function
     def send_ctrl_cmd(self, steering ,velocity):
         cmd = CtrlCmd()
         if(velocity > 0):
