@@ -26,7 +26,7 @@ class a_star_path_pub:
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback)
         rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.init_callback)
 
-        #TODO: 1) Mgeo data 읽어온 후 데이터 확인
+        #TODO: 1) After reading MGEO data, check the data
         load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/kcity'))
         mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)
 
@@ -72,7 +72,7 @@ class a_star_path_pub:
                 link_list_path_pub.publish(link_path)
                 time.sleep(0.1)
 
-            #TODO: (11) A* 이용해 만든 Global Path 정보 Publish
+            #TODO: (11) Publish Global Path information using A*
             self.global_path_pub.publish(self.global_path_msg)
             time.sleep(2)
             rate.sleep()
@@ -81,8 +81,8 @@ class a_star_path_pub:
         if self.is_init_pose is not False:
             self.is_goal_pose == False
 
-        #TODO: (2) 시작 Node 와 종료 Node 정의
-        # 시작 Node 는 Rviz 기능을 이용해 지정한 위치에서 가장 가까이 있는 Node 로 한다.
+        #TODO: (2) Defining the start node and end node
+        # The starting node is the node closest to the location specified using the Rviz function.
         start_min_dis = float('inf')
         self.init_msg = msg
         self.init_x = self.init_msg.pose.pose.position.x
@@ -99,8 +99,8 @@ class a_star_path_pub:
         self.is_init_pose = True
 
     def goal_callback(self, msg):
-        #TODO: (2) 시작 Node 와 종료 Node 정의
-        # 종료 Node 는 Rviz 기능을 이용해 지정한 위치에서 가장 가까이 있는 Node 로 한다.
+        #TODO: (2) Defining the start node and end node
+        # The end node is the node closest to the location specified using the Rviz function.
         goal_min_dis = float('inf')
         self.goal_msg = msg
         self.goal_x = self.goal_msg.pose.position.x
@@ -120,7 +120,7 @@ class a_star_path_pub:
     def calc_a_star_path_node(self, start_node, end_node):
         result, link_list, path = self.global_planner.find_shortest_path(start_node, end_node)
 
-        #TODO: (10) A* 경로 데이터를 ROS Path 메세지 형식에 맞춰 정의
+        #TODO: (10) Define A* path data to fit the ROS Path message format
         out_path = Path()
         out_path.header.frame_id = '/map'
 
@@ -143,7 +143,7 @@ class AStar:
         self.lane_change_link_idx = []
 
     def find_shortest_link_leading_to_node(self, from_node, to_node):
-        #현재 노드에서 to_node로 연결되어 있는 링크를 찾고, 그 중에서 가장 빠른 링크를 찾아준다
+        # Finds links from the current node to to_node and finds the fastest link among them
 
         to_links = []
         for link in from_node.get_to_links():
@@ -163,14 +163,14 @@ class AStar:
         return shortest_link, min_cost
 
     def heuristic(self, node1, node2):
-        # TODO: (3) 휴리스틱 함수 정의
-        # 두 노드 사이의 거리를 휴리스틱으로 사용
+        # TODO: (3) Definition of heuristic function
+        # Using the distance between two nodes as a heuristic
         # you can update heuristic function
         return sqrt(pow(node1.point[0] - node2.point[0], 2) + pow(node1.point[1] - node2.point[1], 2))
 
     def find_shortest_path(self, start_node_idx, end_node_idx):
-        #TODO: (4) A* Path 초기화 로직
-        # s 초기화         >> s = [False] * len(self.nodes)
+        #TODO: (4) A* Path initializing code
+
         start_node = self.nodes[start_node_idx]
         end_node = self.nodes[end_node_idx]
         link_list = []
@@ -182,7 +182,7 @@ class AStar:
             s[node_id] = False
         dist[start_node_idx] = 0
 
-        #TODO: (5) A* 핵심 부분 구현
+        #TODO: (5) A* code
         que.put((dist[start_node_idx] + self.heuristic(start_node, end_node), start_node_idx))
         while(que.empty() is False):
             node_id = que.get()[1]
@@ -198,7 +198,7 @@ class AStar:
                     link_list.append(link)
 
 
-        #TODO: (6) node path 생성
+        #TODO: (6) node path
         tracking_idx = end_node_idx
         node_path = [end_node_idx]
 
@@ -208,7 +208,7 @@ class AStar:
 
         node_path.reverse()
 
-        #TODO: (7) link path 생성
+        #TODO: (7) link path
         link_path = []
         for i in range(len(node_path) - 1):
             from_node_idx = node_path[i]
@@ -220,11 +220,11 @@ class AStar:
             shortest_link, min_cost = self.find_shortest_link_leading_to_node(from_node, to_node)
             link_path.append(shortest_link.idx)
 
-        #TODO: (8) Result 판별
+        #TODO: (8) Result 
         if len(link_path) == 0:
             return False, link_list, {'node_path': node_path, 'link_path': link_path, 'point_path': []}
 
-        #TODO: (9) point path 생성
+        #TODO: (9) point path
         point_path = []
         for link_id in link_path:
             link = self.links[link_id]
