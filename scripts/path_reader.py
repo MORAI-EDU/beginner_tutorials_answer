@@ -15,7 +15,6 @@ class pathReader :
         openFile = open(full_file_name, 'r')
         out_path=Path()
         out_path.header.frame_id='/map'
-        # 파일 한줄 --> waypoint 한개
         line=openFile.readlines()
         for i in line :
             tmp=i.split()
