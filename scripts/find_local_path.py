@@ -9,8 +9,8 @@ from geometry_msgs.msg import PoseStamped
 from path_reader import pathReader
 from turtlesim.msg import Pose
 
-# global_path 와 turtle의 status_msg를 이용해
-# 현재 waypoint와 local_path를 생성
+# Using global_path and turtle's status_msg
+# Create current waypoint and local_path
 def find_local_path(ref_path,status_msg):
     out_path=Path()
     current_x=status_msg.x
@@ -18,7 +18,7 @@ def find_local_path(ref_path,status_msg):
     current_waypoint=0
     min_dis=float('inf')
 
-    # 가장 가까운 waypoint(current waypoint) 찾기
+    # Find the nearest waypoint (current waypoint)
     for i in range(len(ref_path.poses)):
         dx = current_x - ref_path.poses[i].pose.position.x
         dy = current_y - ref_path.poses[i].pose.position.y
@@ -27,7 +27,7 @@ def find_local_path(ref_path,status_msg):
             min_dis=dis
             current_waypoint=i
 
-    # 현재 waypoint 부터 최대 10개의 waypoint를 local_path에 추가
+# Add up to 10 waypoints from the current waypoint to local_path
     if current_waypoint+10 > len(ref_path.poses) :
         last_local_waypoint= len(ref_path.poses)
     else :
@@ -68,13 +68,13 @@ if __name__ == '__main__' :
         path_pub = rospy.Publisher('/global_path',Path, queue_size=1)
         local_path_pub = rospy.Publisher('/local_path', Path, queue_size=1)
         tl=turtle_listener()
-        # 전역 경로 로드
+        # Load global path
         p_r=pathReader("beginner_tutorials")
         global_path = p_r.read_txt("turtle_path.txt")
 
         rate=rospy.Rate(30)
         while not rospy.is_shutdown():
-            # 지역 경로 생성
+            # make local path
             local_path,current_waypoint = find_local_path(global_path, tl.status_msg)
             local_path_pub.publish(local_path)
             path_pub.publish(global_path)
