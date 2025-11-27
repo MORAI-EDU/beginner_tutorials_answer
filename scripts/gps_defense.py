@@ -3,17 +3,15 @@
 
 import rospy, os
 
-from pyproj import Proj
 from std_msgs.msg import Float32MultiArray
 from morai_msgs.msg import GPSMessage
 
 
 
-class GPS_to_UTM:
+class GPS_to_SIM:
     def __init__(self):
-        rospy.init_node('GPS_to_UTM', anonymous=True)
+        rospy.init_node('GPS_to_SIM', anonymous=True)
         self.gps_sub = rospy.Subscriber("/gps", GPSMessage, self.gps_callback)
-        self.proj_UTM = Proj(proj='utm', zone=52, ellps = 'WGS84', preserve_units=False)
 
         self.utm_msg = Float32MultiArray()
         self.is_gps_data = False
@@ -21,11 +19,17 @@ class GPS_to_UTM:
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             os.system('clear')
-            if not self.is_gps_data:
-                print("[1] can't subscribe '/gps' topic... \n    please check your GPS sensor connection")
+            #if not self.is_gps_data:
+            #    print("[1] can't subscribe '/gps' topic... \n    please check your GPS sensor connection")
 
             self.is_gps_data = False
             rate.sleep()
+
+    def convert_gps_to_sim(self, lat, lon):
+        x = (1.74366642 * lat) + (111705.27046915 * lon) + (2.74602510)
+        y = (110234.58048352 * lat) + (-23.11916045 * lon) + (-4.08750102)
+        
+        return x, y
 
 
     def gps_callback(self, gps_msg):
@@ -33,11 +37,10 @@ class GPS_to_UTM:
         latitude = gps_msg.latitude
         longitude = gps_msg.longitude
         altitude = gps_msg.altitude
-        utm_xy = self.proj_UTM(longitude, latitude)
-        utm_x = utm_xy[0]
-        utm_y = utm_xy[1]
-        map_x = utm_x - gps_msg.eastOffset
-        map_y = utm_y - gps_msg.northOffset
+        sim_x, sim_y = self.convert_gps_to_sim(latitude, longitude)
+
+        map_x = sim_x
+        map_y = sim_y
         
         os.system('clear')
         print(f''' 
@@ -47,26 +50,26 @@ class GPS_to_UTM:
             altitude    : {altitude}
 
                              |
-                             | apply Projection (utm 52 zone)
+                             | apply Projection
                              V
 
-        ------------------[ utm ]-------------------
-              utm_x     : {utm_x}
-              utm_y     : {utm_y}
+        ------------------[ SIM ]-------------------
+              sim_x     : {sim_x}
+              sim_y     : {sim_y}
 
                              |
-                             | apply offset (east and north)
+                             |
                              V
               
-        ------------------[ map ]-------------------
-        simulator map_x : {map_x}
-        simulator map_y : {map_y}
+        ------------------[ MAP ]-------------------
+              map_x     : {map_x}
+              map_y     : {map_y}
         ''')
 
 
 
 if __name__ == '__main__':
     try:
-        GPS_to_UTM = GPS_to_UTM()
+        GPS_to_UTM = GPS_to_SIM()
     except rospy.ROSInterruptException:
         pass

@@ -24,10 +24,10 @@ class stanly_controller :
         self.is_status = False
         self.forward_point = Point()
         self.current_postion = Point()
-        self.target_vel = 30.0
+        self.target_vel = 15.0
         self.current_vel = 0.0
         self.is_look_forward_point = False
-        self.vehicle_length = 3
+        self.vehicle_length = 4
         self.k = 0.8 #stanley constant
         self.v_t = 1 #vel constant to get crosstrack error
         self.prev_steering_angle = 0

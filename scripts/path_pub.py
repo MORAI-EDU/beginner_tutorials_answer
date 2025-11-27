@@ -23,7 +23,7 @@ class path_pub :
 
         rospack=rospkg.RosPack()
         pkg_path=rospack.get_path('beginner_tutorials')
-        full_path=pkg_path+'/path'+'/kcity.txt'
+        full_path=pkg_path+'/path'+'/defense_offroad_1.txt'
         self.f=open(full_path,'r')
         lines=self.f.readlines()
         for line in lines :
