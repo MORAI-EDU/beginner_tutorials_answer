@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
- 
+# -*- coding: utf-8 -*-
+
 import rospy
 import cv2
 import numpy as np
@@ -19,13 +20,13 @@ class PurePursuit :
         rospy.init_node('lane_follower', anonymous=True)
         self.status_sub = rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         self.lpath_sub = rospy.Subscriber('/lane_path', Path, self.lane_path_callback)
-        self.cmd_pub = rospy.Publisher('/ctrl_cmd_0', CtrlCmd, queue_size=1)
+        self.cmd_pub = rospy.Publisher('/ctrl_cmd', CtrlCmd, queue_size=1)
         
         self.is_status = False
         self.is_lpath = False
         
         self.is_look_forward_point = False
-        self.vehicle_length = 2
+        self.vehicle_length = 3.0
         self.lfd = 20
         self.min_lfd = 2
         self.max_lfd = 50
@@ -33,6 +34,11 @@ class PurePursuit :
         self.lpath = None
         self.ctrl_msg = CtrlCmd()
         self.current_vel = 0
+
+        # --- 조향 정책 반영을 위한 파라미터 ---
+        self.max_steer_deg = 40.0  # 차량의 최대 조향각 (40도)
+        self.max_steering_angle = self.max_steer_deg * math.pi / 180 
+        # ------------------------------------------
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -46,11 +52,12 @@ class PurePursuit :
                 print(f'''
                     lane_follower is processing...
                 -------------------------------------
-                    accel     : {self.ctrl_msg.accel}
-                    brake     : {self.ctrl_msg.brake}
-                   steering   : {self.ctrl_msg.steering}
-                   velocity   : {self.ctrl_msg.velocity}
-                 acceleration : {self.ctrl_msg.acceleration}
+                    accel        : {self.ctrl_msg.accel:.4f}
+                    brake        : {self.ctrl_msg.brake:.4f}
+                    steering     : {self.ctrl_msg.front_steer:.4f} (-1 ~ 1)
+                    velocity     : {self.ctrl_msg.velocity:.2f}
+                    acceleration : {self.ctrl_msg.acceleration:.2f}
+                -------------------------------------
                 ''')
                 print('if nothing happens... please check [F4] Cmd Control Network')
             else:
@@ -73,48 +80,44 @@ class PurePursuit :
         self.lpath = msg
 
     def steering_angle(self):
+        self.is_look_forward_point = False
 
-        self.is_look_forward_point= False
-
+        # 차선 인지 경로점 탐색
         for i in self.lpath.poses:
-
-            path_point=i.pose.position
+            path_point = i.pose.position
             
-            if path_point.x>0 :
-
+            if path_point.x > 0 :
                 dis_i = np.sqrt(np.square(path_point.x) + np.square(path_point.y))
                 
-                if dis_i>= self.lfd :
-
-                    self.is_look_forward_point=True
-                    
+                if dis_i >= self.lfd :
+                    self.is_look_forward_point = True
                     break
         
-        theta=math.atan2(path_point.y, path_point.x)
+        # 차량 기준 목표 상대 각도 계산
+        theta = math.atan2(path_point.y, path_point.x)
 
         if self.is_look_forward_point :
-            steering_deg= math.atan2((2 * self.vehicle_length * math.sin(theta)),self.lfd)
+            # Pure Pursuit 기본 조향각(라디안) 계산
+            steering_rad = math.atan2((2 * self.vehicle_length * math.sin(theta)), self.lfd)
 
-            self.ctrl_msg.steering = steering_deg
+            # 동일 조향각 정책 반영 (방향 반전 및 최대 조향각 40도 기준 정규화)
+            normalized_steer = - (steering_rad / self.max_steering_angle)
+            self.ctrl_msg.front_steer = np.clip(normalized_steer, -1.0, 1.0)
         else : 
-            self.ctrl_msg.steering = 0.0
-            print("no found forward point")
+            self.ctrl_msg.front_steer = 0.0
+            print("목표 전방 주행점(Look-Forward Point)을 찾을 수 없습니다.")
 
     def calc_acc(self, target_vel):
-
         err = target_vel - self.current_vel
-
         control_input = 1 * err
 
         if control_input > 0 :
-            self.ctrl_msg.accel= control_input
-            self.ctrl_msg.brake= 0
+            self.ctrl_msg.accel = control_input
+            self.ctrl_msg.brake = 0.0
         else :
-            self.ctrl_msg.accel= 0
-            self.ctrl_msg.brake= -control_input
+            self.ctrl_msg.accel = 0.0
+            self.ctrl_msg.brake = -control_input
 
-
-        
 
 if __name__ == '__main__':
     

@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import rospy, os
-import rospkg
 from math import cos,sin,pi,sqrt,pow,atan2
-from geometry_msgs.msg import Point,PoseWithCovarianceStamped
+from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry,Path
 from morai_msgs.msg import CtrlCmd
 import numpy as np
-import tf
-from tf.transformations import euler_from_quaternion,quaternion_from_euler
-
+from tf.transformations import euler_from_quaternion
 
 class pure_pursuit :
     def __init__(self):
@@ -27,19 +24,24 @@ class pure_pursuit :
         self.forward_point=Point()
         self.current_postion=Point()
         self.is_look_forward_point=False
-        self.vehicle_length=1
-        self.lfd=5
+        
+        # --- 파라미터 수정 구간 ---
+        self.vehicle_length = 3.0  # 휠베이스(축거)
+        self.lfd = 5.0             # Look-forward distance
+        self.max_steer_deg = 40.0  # 최대 조향각
+        self.max_steering_angle = self.max_steer_deg * pi / 180 
+        # -----------------------
 
-        rate = rospy.Rate(15) # 15hz
+        rate = rospy.Rate(15)
         while not rospy.is_shutdown():
 
-            if self.is_path ==True and self.is_odom==True  :
-                
+            if self.is_path and self.is_odom:
                 vehicle_position=self.current_postion
                 self.is_look_forward_point= False
 
                 translation=[vehicle_position.x, vehicle_position.y]
 
+                # Global to Local 좌표 변환 행렬
                 t=np.array([
                         [cos(self.vehicle_yaw), -sin(self.vehicle_yaw),translation[0]],
                         [sin(self.vehicle_yaw),cos(self.vehicle_yaw),translation[1]],
@@ -52,9 +54,9 @@ class pure_pursuit :
 
                 for num,i in enumerate(self.path.poses) :
                     path_point=i.pose.position
-
                     global_path_point=[path_point.x,path_point.y,1]
-                    local_path_point=det_t.dot(global_path_point)           
+                    local_path_point=det_t.dot(global_path_point)            
+                    
                     if local_path_point[0]>0 :
                         dis=sqrt(pow(local_path_point[0],2)+pow(local_path_point[1],2))
                         if dis>= self.lfd :
@@ -62,31 +64,30 @@ class pure_pursuit :
                             self.is_look_forward_point=True
                             break
                 
-                theta=atan2(local_path_point[1],local_path_point[0])
-
                 if self.is_look_forward_point :
-                    self.ctrl_cmd_msg.steering = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
-                    self.ctrl_cmd_msg.velocity = 15.0
+                    theta=atan2(local_path_point[1],local_path_point[0])
+                    
+                    # Pure Pursuit 공식 적용
+                    steering_angle = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
+                    
+                    # 시뮬레이터 방향에 따라 steering_angle 앞의 부호를 조정합니다.
+                    normalized_steer = - (steering_angle / self.max_steering_angle)
+                    
+                    self.ctrl_cmd_msg.front_steer = np.clip(normalized_steer, -1.0, 1.0)
+                    self.ctrl_cmd_msg.velocity = 20.0
 
                     os.system('clear')
                     print("-------------------------------------")
-                    print(" steering (deg) = ", self.ctrl_cmd_msg.steering * 180/3.14)
+                    print(" steering (deg) = ", self.ctrl_cmd_msg.front_steer * 180/3.14)
                     print(" velocity (kph) = ", self.ctrl_cmd_msg.velocity)
                     print("-------------------------------------")
                 else : 
-                    print("no found forward point")
-                    self.ctrl_cmd_msg.steering=0.0
+                    print("Searching for forward point...")
+                    self.ctrl_cmd_msg.front_steer=0.0
                     self.ctrl_cmd_msg.velocity=0.0
                 
                 self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
 
-            else:
-                os.system('clear')
-                if not self.is_path:
-                    print("[1] can't subscribe '/local_path' topic...")
-                if not self.is_odom:
-                    print("[2] can't subscribe '/odom' topic...")
-            
             self.is_path = self.is_odom = False
             rate.sleep()
 

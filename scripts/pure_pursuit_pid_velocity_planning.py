@@ -39,7 +39,7 @@ class pure_pursuit :
         
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
         rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback) 
-        self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
+        self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd',CtrlCmd, queue_size=1)
 
         self.ctrl_cmd_msg = CtrlCmd()
         self.ctrl_cmd_msg.longlCmdType = 1
@@ -54,12 +54,17 @@ class pure_pursuit :
         self.forward_point = Point()
         self.current_postion = Point()
 
-        self.vehicle_length = 2.6
+        self.vehicle_length = 3.0
         self.lfd = 8
         self.min_lfd = 5
         self.max_lfd = 30
         self.lfd_gain = 0.78
-        self.target_velocity = 40
+        self.target_velocity = 40.0
+
+        # --- 조향 정책 반영을 위한 파라미터 추가 ---
+        self.max_steer_deg = 40.0  # 차량의 최대 조향각 (40도)
+        self.max_steering_angle = self.max_steer_deg * pi / 180 
+        # ------------------------------------------
 
         self.pid = pidControl()
         self.vel_planning = velocityPlanning(self.target_velocity/3.6, 0.15)
@@ -80,12 +85,12 @@ class pure_pursuit :
                 self.target_velocity = self.velocity_list[self.current_waypoint]*3.6
                 
 
-                steering = self.calc_pure_pursuit()
+                front_steer = self.calc_pure_pursuit()
                 if self.is_look_forward_point :
-                    self.ctrl_cmd_msg.steering = steering
+                    self.ctrl_cmd_msg.front_steer = front_steer
                 else : 
                     rospy.loginfo("no found forward point")
-                    self.ctrl_cmd_msg.steering = 0.0
+                    self.ctrl_cmd_msg.front_steer = 0.0
                 
                 output = self.pid.pid(self.target_velocity,self.status_msg.velocity.x*3.6)
 
@@ -97,9 +102,10 @@ class pure_pursuit :
                     self.ctrl_cmd_msg.brake = -output
 
                 #TODO: (8) 제어입력 메세지 Publish
-                print(steering)
+                # print(f"Target Vel: {self.target_velocity:.1f} | Final Steer: {front_steer:.4f}") # 디버깅용 출력 변경 가능
                 self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
                 
+            self.is_path = self.is_odom = self.is_status = False
             rate.sleep()
 
     def path_callback(self,msg):
@@ -173,15 +179,19 @@ class pure_pursuit :
         
         #TODO: (4) Steering 각도 계산
         theta = atan2(local_path_point[1],local_path_point[0])
-        steering = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
+        raw_steering_angle = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
 
-        return steering
+        # [동일 정책 반영] 방향 반전(-1 곱하기) 및 최대 조향각(40도) 기준 정규화
+        normalized_steer = - (raw_steering_angle / self.max_steering_angle)
+        front_steer = np.clip(normalized_steer, -1.0, 1.0)
+
+        return front_steer
 
 class pidControl:
     def __init__(self):
         self.p_gain = 0.3
         self.i_gain = 0.00
-        self.d_gain = 0.03
+        self.d_gain = 0.01
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02

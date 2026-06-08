@@ -20,7 +20,7 @@ class IMGParser:
             if not self.is_image:
                 print("[1] can't subscribe '/image_jpeg/compressed' topic... \n    please check your Camera sensor connection")
             else:
-                print(f"Caemra sensor was connected !")
+                print(f"Camera sensor was connected !")
 
             rate.sleep()
 

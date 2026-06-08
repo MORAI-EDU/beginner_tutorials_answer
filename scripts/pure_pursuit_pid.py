@@ -17,7 +17,7 @@ class pidControl:
     def __init__(self):
         self.p_gain = 0.3
         self.i_gain = 0.07
-        self.d_gain = 0.03
+        self.d_gain = 0.01
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02
@@ -40,9 +40,7 @@ class pure_pursuit :
         rospy.Subscriber("odom", Odometry, self.odom_callback)
         rospy.Subscriber("Ego_topic", EgoVehicleStatus, self.status_callback)
 
-
-        
-        self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
+        self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd',CtrlCmd, queue_size=1)
         self.ctrl_cmd_msg=CtrlCmd()
         self.ctrl_cmd_msg.longlCmdType=1
 
@@ -50,13 +48,18 @@ class pure_pursuit :
         self.is_odom=False
         self.is_current_vel =False
         self.is_status = False
-        self.target_vel = 40
+        self.target_vel = 20.0
         self.current_vel = 0.0
         self.forward_point=Point()
         self.current_postion=Point()
         self.is_look_forward_point=False
-        self.vehicle_length=3
-        self.lfd = 20
+        self.vehicle_length = 3.0
+        self.lfd = 20.0
+
+        # --- 조향 정책 반영을 위한 파라미터 추가 ---
+        self.max_steer_deg = 40.0  # 차량의 최대 조향각 (40도)
+        self.max_steering_angle = self.max_steer_deg * pi / 180 
+        # ------------------------------------------
 
         self.pid_controller = pidControl()
 
@@ -91,10 +94,17 @@ class pure_pursuit :
                             self.is_look_forward_point=True
                             break
                 
-                theta=atan2(local_path_point[1],local_path_point[0])
-
                 if self.is_look_forward_point :
-                    self.ctrl_cmd_msg.steering = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
+                    theta=atan2(local_path_point[1],local_path_point[0])
+                    
+                    # 1. Pure Pursuit 공식 적용 (라디안 단위 계산)
+                    steering_angle = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
+                    
+                    # 2. 정규화 및 반전 조향각 정책 적용 (-1 곱하기 및 최대조향각 40도 나누기)
+                    normalized_steer = - (steering_angle / self.max_steering_angle)
+                    self.ctrl_cmd_msg.front_steer = np.clip(normalized_steer, -1.0, 1.0)
+                    
+                    # 종방향 PID 제어
                     output = self.pid_controller.pid(self.target_vel, self.current_vel * 3.6)
 
                     if output > 0:
@@ -104,16 +114,21 @@ class pure_pursuit :
                         self.ctrl_cmd_msg.accel = 0
                         self.ctrl_cmd_msg.brake = - output
                     
+                    # 상태 모니터링 출력 업데이트
                     os.system('clear')
-                    print("-------------------------------------")
-                    print(" Accel (%) = ", 100 if self.ctrl_cmd_msg.accel * 100 >= 100 else self.ctrl_cmd_msg.accel * 100)
-                    print(" Brake (%) = ", 100 if self.ctrl_cmd_msg.brake * 100 >= 100 else self.ctrl_cmd_msg.brake * 100)
-                    print("-------------------------------------")
+                    print("--- Autonomous Control Status ---")
+                    print(f" Target / Current Vel : {self.target_vel:.1f} / {self.current_vel * 3.6:.1f} kph")
+                    print(f" Accel (%)            : {min(100.0, self.ctrl_cmd_msg.accel * 100):.1f} %")
+                    print(f" Brake (%)            : {min(100.0, self.ctrl_cmd_msg.brake * 100):.1f} %")
+                    print(f" Raw Steer Angle(deg) : {steering_angle * 180/pi:.2f} deg")
+                    print(f" Normalized Steer (-1~1): {self.ctrl_cmd_msg.front_steer:.4f}")
+                    print("---------------------------------")
 
                 else : 
                     print("no found forward point")
-                    self.ctrl_cmd_msg.steering=0.0
-                    self.ctrl_cmd_msg.velocity=0.0
+                    self.ctrl_cmd_msg.front_steer = 0.0
+                    self.ctrl_cmd_msg.accel = 0.0
+                    self.ctrl_cmd_msg.brake = 1.0  # 타겟 포인트를 유실하면 안전을 위해 브레이크 체결
 
                 self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
             

@@ -330,15 +330,15 @@ class CURVEFit:
 
         self.lane_path = Path()
 
-        self.ransac_left = linear_model.RANSACRegressor(base_estimator=linear_model.Lasso(alpha=alpha),
+        self.ransac_left = linear_model.RANSACRegressor(estimator=linear_model.Lasso(alpha=alpha),
                                                         max_trials=self.max_trials,
-                                                        loss='absolute_loss',
+                                                        loss='absolute_error',
                                                         min_samples=self.min_pts,
                                                         residual_threshold=self.y_margin)
 
-        self.ransac_right = linear_model.RANSACRegressor(base_estimator=linear_model.Lasso(alpha=alpha),
+        self.ransac_right = linear_model.RANSACRegressor(estimator=linear_model.Lasso(alpha=alpha),
                                                         max_trials=5,
-                                                        loss='absolute_loss',
+                                                        loss='absolute_error',
                                                         min_samples=self.min_pts,
                                                         residual_threshold=self.y_margin)
         
@@ -543,7 +543,7 @@ if __name__ == '__main__':
             cv2.imshow("img_warp", img_warp)
             cv2.imshow("origin_img", image_parser.img_bgr)
             cv2.waitKey(1)
-            print(f"Caemra sensor was connected !")
+            print(f"Camera sensor was connected !")
 
         else:
             print("[1] can't subscribe '/image_jpeg/compressed' topic... \n    please check your Camera sensor connection")
