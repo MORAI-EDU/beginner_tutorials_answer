@@ -25,7 +25,7 @@ class get_mgeo :
         self.node_pub = rospy.Publisher('node',PointCloud, queue_size=1)
 
 
-        load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/kcity'))
+        load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/c-track'))
         mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)
 
         node_set = mgeo_planner_map.node_set
