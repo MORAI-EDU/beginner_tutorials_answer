@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-import rospy
+# -*- coding: utf-8 -*-
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 import cv2
 import numpy as np
 import math
 import time
+
 from sensor_msgs.msg import PointCloud2, CompressedImage
-import sensor_msgs.point_cloud2 as pc2
+import sensor_msgs_py.point_cloud2 as pc2
 from numpy.linalg import inv
+
 parameters_cam = {
     "WIDTH": 640, # image width
     "HEIGHT": 480, # image height
@@ -26,6 +32,7 @@ parameters_lidar = {
     "PITCH": 0,
     "ROLL": 0
 }
+
 def getRotMat(RPY):
     cosR = math.cos(RPY[0])
     cosP = math.cos(RPY[1])
@@ -74,16 +81,31 @@ def getCameraMat(params_cam):
     return CameraMat
 
 
-class LiDARToCameraTransform:
-    def __init__(self, params_cam, params_lidar):        
-        self.scan_sub = rospy.Subscriber("/velodyne_points", PointCloud2, self.scan_callback)
-        self.image_sub = rospy.Subscriber("/image_jpeg/compressed", CompressedImage, self.img_callback)
+class LiDARToCameraTransform(Node):
+    def __init__(self, params_cam, params_lidar):       
+        super().__init__('ex_calib')
+        
+        qos_profile_lidar = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE
+        )
+        
+        qos_profile_cam = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.BEST_EFFORT
+        )
+        
+        self.scan_sub = self.create_subscription(PointCloud2, "/velodyne_points", self.scan_callback, qos_profile_lidar)
+        self.image_sub = self.create_subscription(CompressedImage, "/camera/image/compressed", self.img_callback, qos_profile_cam)
+        
         self.pc_np = None
         self.img = None
         self.width = params_cam["WIDTH"]
         self.height = params_cam["HEIGHT"]
         self.TransformMat = getTransformMat(params_cam, params_lidar)
         self.CameraMat = getCameraMat(params_cam)
+
+        self.timer = self.create_timer(1.0 / 10.0, self.timer_callback)
 
     def img_callback(self, msg):
         np_arr = np.frombuffer(msg.data, np.uint8)
@@ -108,6 +130,28 @@ class LiDARToCameraTransform:
         cam_temp = np.delete(cam_temp,np.where(cam_temp[1,:]>self.height),axis=1)
         return cam_temp
     
+    def timer_callback(self):
+        if self.pc_np is not None and self.img is not None:
+            xyz_p = self.pc_np[:, 0:3]
+            xyz_p = np.insert(xyz_p,3,1,axis=1).T
+            xyz_p = np.delete(xyz_p,np.where(xyz_p[0,:]<0),axis=1)
+            xyz_p = np.delete(xyz_p,np.where(xyz_p[0,:]>10),axis=1)
+            xyz_p = np.delete(xyz_p,np.where(xyz_p[2,:]<-1.2),axis=1) #Ground Filter
+
+            #print(xyz_p[0])
+            xyz_c = self.transformLiDARToCamera(xyz_p)
+            
+            #print(np.size(xyz_c[0]))
+            xy_i = self.transformCameraToImage(xyz_c)
+            
+            #print(np.size(xy_i[0]))
+            xy_i = xy_i.astype(np.int32)
+            
+            if xy_i.size > 0:
+                projectionImage = draw_pts_img(self.img, xy_i[0,:], xy_i[1,:])
+                cv2.imshow("LidartoCameraProjection", projectionImage)
+                cv2.waitKey(1)
+
 
 def draw_pts_img(img, xi, yi):
     point_np = img    
@@ -116,28 +160,18 @@ def draw_pts_img(img, xi, yi):
     return point_np
 
 
-if __name__ == '__main__':    
-    rospy.init_node('ex_calib', anonymous=True)
-    Transformer = LiDARToCameraTransform(parameters_cam, parameters_lidar)
-    time.sleep(1)
-    rate = rospy.Rate(10)
-    while not rospy.is_shutdown():
+def main(args=None):    
+    rclpy.init(args=args)
+    transformer = LiDARToCameraTransform(parameters_cam, parameters_lidar)
+    
+    try:
+        rclpy.spin(transformer)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cv2.destroyAllWindows()
+        transformer.destroy_node()
+        rclpy.shutdown()
 
-        xyz_p = Transformer.pc_np[:, 0:3]
-        xyz_p = np.insert(xyz_p,3,1,axis=1).T
-        xyz_p = np.delete(xyz_p,np.where(xyz_p[0,:]<0),axis=1)
-        xyz_p = np.delete(xyz_p,np.where(xyz_p[0,:]>10),axis=1)
-        xyz_p = np.delete(xyz_p,np.where(xyz_p[2,:]<-1.2),axis=1) #Ground Filter
-
-        #print(xyz_p[0])
-        xyz_c = Transformer.transformLiDARToCamera(xyz_p)
-        
-        #print(np.size(xyz_c[0]))
-        xy_i = Transformer.transformCameraToImage(xyz_c)
-        
-        #print(np.size(xy_i[0]))
-        xy_i = xy_i.astype(np.int32)
-        projectionImage = draw_pts_img(Transformer.img, xy_i[0,:], xy_i[1,:])
-                                            
-        cv2.imshow("LidartoCameraProjection", projectionImage)
-        cv2.waitKey(1)
+if __name__ == '__main__':
+    main()

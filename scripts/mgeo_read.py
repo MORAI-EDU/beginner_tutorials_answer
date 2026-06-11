@@ -3,13 +3,12 @@
 
 import os
 import sys
-import rospy
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_path)
 
 
-from lib.mgeo.class_defs import *
+from lib.mgeo.class_defs import MGeoPlannerMap
 
 load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/kcity'))
 mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)

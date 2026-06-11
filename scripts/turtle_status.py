@@ -1,32 +1,59 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import rospy
-import tf
-# /turtle1/pose 토픽 타입인 turtlesim/Pose import
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from turtlesim.msg import Pose
+from geometry_msgs.msg import TransformStamped
+from tf2_ros import TransformBroadcaster
+from tf_transformations import quaternion_from_euler
 
-class turtle_listener():
+class TurtleListener(Node):
     def __init__(self):
-        rospy.init_node('status_listener', anonymous=True)
-        # /turtle1/pose 구독
-        rospy.Subscriber('/turtle1/pose', Pose, self.statusCB)
-        self.status_msg=Pose()
-        rospy.spin()
+        super().__init__('status_listener')
+        
+        qos_profile = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.BEST_EFFORT
+        )
+        
+        self.subscriber = self.create_subscription(Pose, '/turtle1/pose', self.statusCB, qos_profile)
+        self.br = TransformBroadcaster(self)
 
-    def statusCB(self,data): ## turtle Status subscriber
-        self.status_msg=data
+    def statusCB(self, data):
         print("tf broad cast")
-        # 브로드캐스터 생성
-        br = tf.TransformBroadcaster()
-        # turtle1 상태 tf 브로드캐스팅
-        br.sendTransform((self.status_msg.x, self.status_msg.y, 0),
-                        tf.transformations.quaternion_from_euler(0,0, self.status_msg.theta),
-                        rospy.Time.now(),
-                        "turtle",
-                        "map")
+        
+        t = TransformStamped()
+        
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = 'map'
+        t.child_frame_id = 'turtle'
+        
+        t.transform.translation.x = float(data.x)
+        t.transform.translation.y = float(data.y)
+        t.transform.translation.z = 0.0
+        
+        q = quaternion_from_euler(0.0, 0.0, data.theta)
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
+        
+        self.br.sendTransform(t)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    tl = TurtleListener()
+    
+    try:
+        rclpy.spin(tl)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        tl.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
-    try:
-        tl=turtle_listener()
-    except rospy.ROSInternalException:
-        pass
+    main()

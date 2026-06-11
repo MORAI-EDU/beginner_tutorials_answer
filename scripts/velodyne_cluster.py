@@ -1,22 +1,30 @@
 #!/usr/bin/env python3
 #-*- coding:utf-8 -*-
 
-import rospy
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 import numpy as np
 
 from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import Header
-import sensor_msgs.point_cloud2 as pc2
+import sensor_msgs_py.point_cloud2 as pc2
 from geometry_msgs.msg import PoseArray, Pose
 from sklearn.cluster import DBSCAN
 
-class SCANCluster:
+class SCANCluster(Node):
     def __init__(self):
-        rospy.init_node('velodyne_clustering', anonymous=True)
-        self.scan_sub = rospy.Subscriber("/velodyne_points", PointCloud2, self.callback)
-        self.clusterpoints_pub = rospy.Publisher("/cluster_points", PointCloud2, queue_size=10)
+        super().__init__('velodyne_clustering')
+        
+        qos_profile = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE
+        )
+        
+        self.scan_sub = self.create_subscription(PointCloud2, "/velodyne_points", self.callback, qos_profile)
+        self.clusterpoints_pub = self.create_publisher(PointCloud2, "/cluster_points", 10)
         self.pc_np = None
-        self.dbscan = DBSCAN(eps=0.5, min_samples=5)
+        self.dbscan = DBSCAN(eps=0.5, min_samples=10)
 
     def callback(self, msg):
         self.pc_np = self.pointcloud2_to_xyz(msg)
@@ -30,19 +38,19 @@ class SCANCluster:
         cluster_points = []
         for c in range(n_cluster):
             c_tmp = np.mean(pc_xy[db==c, :], axis=0)
-            cluster_points.append([c_tmp[0], c_tmp[1], 1])  # Adding Z coordinate as 1
+            cluster_points.append([float(c_tmp[0]), float(c_tmp[1]), 0.0])  # Adding Z coordinate as 1
 
         self.publish_point_cloud(cluster_points)
 
     def publish_point_cloud(self, points):
         header = Header()
-        header.stamp = rospy.Time.now()
+        header.stamp = self.get_clock().now().to_msg()
         header.frame_id = "velodyne"
 
         fields = [
-            PointField('x', 0, PointField.FLOAT32, 1),
-            PointField('y', 4, PointField.FLOAT32, 1),
-            PointField('z', 8, PointField.FLOAT32, 1),
+            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
         ]
 
         # Create PointCloud2 message
@@ -62,6 +70,17 @@ class SCANCluster:
         point_np = np.array(point_list, np.float32)
         return point_np
 
-if __name__ == '__main__':
+def main(args=None):
+    rclpy.init(args=args)
     scan_cluster = SCANCluster()
-    rospy.spin() 
+    
+    try:
+        rclpy.spin(scan_cluster)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        scan_cluster.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()

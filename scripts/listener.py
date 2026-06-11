@@ -34,27 +34,38 @@
 # Revision $Id$
 
 ## Simple talker demo that listens to std_msgs/Strings published 
-## to the 'chatter' topic
+## to the 'chatter' topic (ROS 2 Version)
 
-import rospy
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import String
 
-def callback(data):
-    rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.data)
+class MinimalSubscriber(Node):
 
-def listener():
+    def __init__(self):
+        super().__init__('listener')
+        
+        self.subscription = self.create_subscription(
+            String,
+            'chatter',
+            self.listener_callback,
+            10)
+        self.subscription
 
-    # In ROS, nodes are uniquely named. If two nodes with the same
-    # name are launched, the previous one is kicked off. The
-    # anonymous=True flag means that rospy will choose a unique
-    # name for our 'listener' node so that multiple listeners can
-    # run simultaneously.
-    rospy.init_node('listener', anonymous=True)
+    def listener_callback(self, msg):
+        self.get_logger().info('I heard: "%s"' % msg.data)
 
-    rospy.Subscriber('chatter', String, callback)
 
-    # spin() simply keeps python from exiting until this node is stopped
-    rospy.spin()
+def main(args=None):
+    rclpy.init(args=args)
+
+    minimal_subscriber = MinimalSubscriber()
+
+    rclpy.spin(minimal_subscriber)
+
+    minimal_subscriber.destroy_node()
+    
+    rclpy.shutdown()
 
 if __name__ == '__main__':
-    listener()
+    main()
