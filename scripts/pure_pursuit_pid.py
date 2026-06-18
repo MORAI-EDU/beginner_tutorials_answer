@@ -15,9 +15,9 @@ import os
 
 class pidControl:
     def __init__(self):
-        self.p_gain = 0.3
-        self.i_gain = 0.07
-        self.d_gain = 0.03
+        self.p_gain = 0.4
+        self.i_gain = 0.03
+        self.d_gain = 0.01
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02
