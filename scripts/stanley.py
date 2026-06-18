@@ -24,12 +24,12 @@ class stanly_controller :
         self.is_status = False
         self.forward_point = Point()
         self.current_postion = Point()
-        self.target_vel = 20.0
+        self.target_vel = 15.0
         self.current_vel = 0.0
         self.is_look_forward_point = False
         self.vehicle_length = 1
-        self.k = 0.8 #stanley constant
-        self.v_t = 1 #vel constant to get crosstrack error
+        self.k = 0.45 #stanley constant
+        self.v_t = 2.0 #vel constant to get crosstrack error
         self.prev_steering_angle = 0
 
         rate = rospy.Rate(15) # 15hz
