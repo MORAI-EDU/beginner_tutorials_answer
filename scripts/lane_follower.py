@@ -25,8 +25,8 @@ class PurePursuit :
         self.is_lpath = False
         
         self.is_look_forward_point = False
-        self.vehicle_length = 2
-        self.lfd = 20
+        self.vehicle_length = 1
+        self.lfd = 5
         self.min_lfd = 2
         self.max_lfd = 50
 

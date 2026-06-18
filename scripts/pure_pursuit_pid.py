@@ -50,13 +50,13 @@ class pure_pursuit :
         self.is_odom=False
         self.is_current_vel =False
         self.is_status = False
-        self.target_vel = 40
+        self.target_vel = 20
         self.current_vel = 0.0
         self.forward_point=Point()
         self.current_postion=Point()
         self.is_look_forward_point=False
-        self.vehicle_length=3
-        self.lfd = 20
+        self.vehicle_length=1
+        self.lfd = 5
 
         self.pid_controller = pidControl()
 
