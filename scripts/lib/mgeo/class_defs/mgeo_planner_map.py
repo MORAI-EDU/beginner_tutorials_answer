@@ -311,7 +311,7 @@ class MGeoPlannerMap(object): # super method의 argument로 전달되려면 obje
             global_info = json.load(f)
 
         # 버전 정보에 맞게 node_set, link_set을 읽어온다.
-        if global_info['maj_ver'] == 2:
+        if global_info['maj_ver'] >= 2:
 
             from save_load import subproc_load_link_ver2
             node_set, link_set, junction_set = subproc_load_link_ver2.load_node_and_link(
