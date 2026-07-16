@@ -9,7 +9,6 @@ import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import Header
 import sensor_msgs_py.point_cloud2 as pc2
-from geometry_msgs.msg import PoseArray, Pose
 from sklearn.cluster import DBSCAN
 
 class SCANCluster(Node):
@@ -38,7 +37,7 @@ class SCANCluster(Node):
         cluster_points = []
         for c in range(n_cluster):
             c_tmp = np.mean(pc_xy[db==c, :], axis=0)
-            cluster_points.append([float(c_tmp[0]), float(c_tmp[1]), 0.0])  # Adding Z coordinate as 1
+            cluster_points.append([float(c_tmp[0]), float(c_tmp[1]), 0.0])
 
         self.publish_point_cloud(cluster_points)
 
@@ -53,10 +52,8 @@ class SCANCluster(Node):
             PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
         ]
 
-        # Create PointCloud2 message
         pc2_msg = pc2.create_cloud(header, fields, points)
 
-        # Publish PointCloud2 message
         self.clusterpoints_pub.publish(pc2_msg)
 
     def pointcloud2_to_xyz(self, cloud_msg):

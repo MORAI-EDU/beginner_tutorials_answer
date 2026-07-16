@@ -3,8 +3,7 @@ import rclpy
 from rclpy.node import Node
 from beginner_tutorials.srv import AddTwoInts
 
-class MinimalService(Node):
-
+class AddTwoIntsServer(Node):
     def __init__(self):
         super().__init__('add_two_ints_server')
         self.srv = self.create_service(AddTwoInts, 'add_two_ints', self.add_two_ints_callback)
@@ -17,14 +16,14 @@ class MinimalService(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    minimal_service = MinimalService()
+    add_two_ints_server = AddTwoIntsServer()
     
     try:
-        rclpy.spin(minimal_service)
+        rclpy.spin(add_two_ints_server)
     except KeyboardInterrupt:
         pass
     finally:
-        minimal_service.destroy_node()
+        add_two_ints_server.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':

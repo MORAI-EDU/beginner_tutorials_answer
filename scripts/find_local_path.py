@@ -19,10 +19,7 @@ class LocalPathFinder(Node):
         self.path_pub = self.create_publisher(Path, '/global_path', 1)
         self.local_path_pub = self.create_publisher(Path, '/local_path', 1)
         
-        qos_profile = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT
-        )
+        qos_profile = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
         
         self.subscriber = self.create_subscription(Pose, '/turtle1/pose', self.statusCB, qos_profile)
         self.status_msg = Pose()
@@ -31,7 +28,7 @@ class LocalPathFinder(Node):
         # 전역 경로 로드
         p_r = PathReader("beginner_tutorials", "turtle_path.txt")
         self.global_path = p_r.global_path
-        p_r.destroy_node() # 경로 데이터만 가져온 뒤 리더 노드는 메모리에서 해제
+        p_r.destroy_node()
         
         self.timer = self.create_timer(1.0 / 30.0, self.timer_callback)
 
@@ -89,11 +86,11 @@ class LocalPathFinder(Node):
             tmp_pose.pose.orientation.w = 1.0
             out_path.poses.append(tmp_pose)
 
-        return out_path, current_waypoint
+        return out_path
 
     def timer_callback(self):
         if len(self.global_path.poses) > 0:
-            local_path, current_waypoint = self.find_local_path(self.global_path, self.status_msg)
+            local_path = self.find_local_path(self.global_path, self.status_msg)
             
             self.global_path.header.stamp = self.get_clock().now().to_msg()
             

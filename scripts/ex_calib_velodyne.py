@@ -7,7 +7,6 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 import cv2
 import numpy as np
 import math
-import time
 
 from sensor_msgs.msg import PointCloud2, CompressedImage
 import sensor_msgs_py.point_cloud2 as pc2
@@ -41,9 +40,15 @@ def getRotMat(RPY):
     sinP = math.sin(RPY[1])
     sinY = math.sin(RPY[2])
     
-    rotRoll = np.array([1,0,0, 0,cosR,-sinR, 0,sinR,cosR]).reshape(3,3)
-    rotPitch = np.array([cosP,0,sinP, 0,1,0, -sinP,0,cosP]).reshape(3,3)
-    rotYaw = np.array([cosY,-sinY,0, sinY,cosY,0, 0,0,1]).reshape(3,3)
+    rotRoll = np.array([1,    0,     0, 
+                        0, cosR, -sinR, 
+                        0, sinR,  cosR]).reshape(3,3)
+    rotPitch = np.array([ cosP, 0, sinP, 
+                             0, 1,    0, 
+                         -sinP, 0, cosP]).reshape(3,3)
+    rotYaw = np.array([cosY, -sinY, 0, 
+                       sinY,  cosY, 0, 
+                          0,     0, 1]).reshape(3,3)
     
     rotMat = rotYaw@rotPitch@rotRoll
     
@@ -54,20 +59,27 @@ def getTransformMat(params_cam, params_lidar):
     #With Respect to Vehicle ISO Coordinate
     lidarPosition = np.array([params_lidar.get(i) for i in (["X","Y","Z"])])
     camPosition = np.array([params_cam.get(i) for i in (["X","Y","Z"])])
+
     lidarRPY = np.array([params_lidar.get(i) for i in (["ROLL","PITCH","YAW"])])
     camRPY = np.array([params_cam.get(i) for i in (["ROLL","PITCH","YAW"])])
     camRPY = camRPY + np.array([-90*math.pi/180,0,-90*math.pi/180])
+
     camRot = getRotMat(camRPY)
     camTransl = np.array([camPosition])
+
     Tr_cam_to_vehicle = np.concatenate((camRot,camTransl.T),axis = 1)
     Tr_cam_to_vehicle = np.insert(Tr_cam_to_vehicle, 3, values=[0,0,0,1],axis = 0)
+
     lidarRot = getRotMat(lidarRPY)
     lidarTransl = np.array([lidarPosition]) 
+
     Tr_lidar_to_vehicle = np.concatenate((lidarRot,lidarTransl.T),axis = 1)
     Tr_lidar_to_vehicle = np.insert(Tr_lidar_to_vehicle, 3, values=[0,0,0,1],axis = 0)
+
     invTr = inv(Tr_cam_to_vehicle)
     Tr_lidar_to_cam = invTr.dot(Tr_lidar_to_vehicle).round(6)
     print(Tr_lidar_to_cam)
+
     return Tr_lidar_to_cam
 
 
@@ -85,15 +97,8 @@ class LiDARToCameraTransform(Node):
     def __init__(self, params_cam, params_lidar):       
         super().__init__('ex_calib')
         
-        qos_profile_lidar = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.RELIABLE
-        )
-        
-        qos_profile_cam = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT
-        )
+        qos_profile_lidar = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
+        qos_profile_cam = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
         
         self.scan_sub = self.create_subscription(PointCloud2, "/velodyne_points", self.scan_callback, qos_profile_lidar)
         self.image_sub = self.create_subscription(CompressedImage, "/camera/image/compressed", self.img_callback, qos_profile_cam)
@@ -138,13 +143,10 @@ class LiDARToCameraTransform(Node):
             xyz_p = np.delete(xyz_p,np.where(xyz_p[0,:]>10),axis=1)
             xyz_p = np.delete(xyz_p,np.where(xyz_p[2,:]<-1.2),axis=1) #Ground Filter
 
-            #print(xyz_p[0])
             xyz_c = self.transformLiDARToCamera(xyz_p)
             
-            #print(np.size(xyz_c[0]))
             xy_i = self.transformCameraToImage(xyz_c)
             
-            #print(np.size(xy_i[0]))
             xy_i = xy_i.astype(np.int32)
             
             if xy_i.size > 0:

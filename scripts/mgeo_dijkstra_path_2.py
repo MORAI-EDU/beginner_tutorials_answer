@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import rclpy
-from rclpy.node import Node
 import sys
 import os
 import copy
-import numpy as np
-import json
+import rclpy
+from rclpy.node import Node
 
-from math import cos, sin, sqrt, pow, atan2, pi
-from geometry_msgs.msg import Point32, PoseStamped, PoseWithCovarianceStamped
-from nav_msgs.msg import Odometry, Path
+from math import sqrt, pow
+from geometry_msgs.msg import  PoseStamped, PoseWithCovarianceStamped
+from nav_msgs.msg import Path
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_path)

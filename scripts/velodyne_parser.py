@@ -3,7 +3,6 @@
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy
 import numpy as np
 
 from sensor_msgs.msg import PointCloud2
@@ -15,12 +14,7 @@ class SCANParser(Node):
     def __init__(self):
         super().__init__('velodyne_parser')
 
-        qos_profile = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.RELIABLE
-        )
-
-        self.scan_sub = self.create_subscription(PointCloud2, "/velodyne_points", self.callback, qos_profile)
+        self.scan_sub = self.create_subscription(PointCloud2, "/velodyne_points", self.callback, 10)
 
         self.dist_pub = self.create_publisher(Float32, "dist_forward", 10)
 

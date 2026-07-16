@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
-from math import cos, sin, pi, sqrt, pow, atan2
+from math import cos, sin, sqrt, pow, atan2
 from morai_ros2_msgs.msg import EgoVehicleStatus, ObjectStatusList
-from geometry_msgs.msg import Point, PoseStamped, Point32
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 import numpy as np
 
@@ -17,11 +16,9 @@ class latticePlanner(Node):
         super().__init__('lattice_planner')
 
         # (1) subscriber, publisher 선언
-        qos_profile = QoSProfile(depth=10)
-
-        self.path_sub = self.create_subscription(Path, "/local_path", self.path_callback, qos_profile)
-        self.status_sub = self.create_subscription(EgoVehicleStatus, "/ego_vehicle_status", self.status_callback, qos_profile)
-        self.object_sub = self.create_subscription(ObjectStatusList, "/object_status", self.object_callback, qos_profile)
+        self.path_sub = self.create_subscription(Path, "/local_path", self.path_callback, 5)
+        self.status_sub = self.create_subscription(EgoVehicleStatus, "/ego_vehicle_status", self.status_callback, 5)
+        self.object_sub = self.create_subscription(ObjectStatusList, "/object_status", self.object_callback, 5)
 
         self.lattice_path_pub = self.create_publisher(Path, '/lattice_path', 1)
 
@@ -59,7 +56,7 @@ class latticePlanner(Node):
         for obstacle in object_data.obstacle_list:
             for path in ref_path.poses:  
                 dis = sqrt(pow(path.pose.position.x - obstacle.position.x, 2) + pow(path.pose.position.y - obstacle.position.y, 2))                
-                if dis < 3.35: # 장애물의 좌표값이 지역 경로 상의 좌표값과의 직선거리가 3.35 미만일때 충돌이라 판단.
+                if dis < 2.85:
                     is_crash = True
                     break
 
@@ -69,13 +66,13 @@ class latticePlanner(Node):
         #TODO: (6) 생성된 충돌회피 경로 중 낮은 비용의 경로 선택
         
         selected_lane = -1        
-        lane_weight = [3, 2, 1, 1, 2, 3] 
+        lane_weight = [5, 3, 1, 1, 3, 5] 
         
         for obstacle in object_data.obstacle_list:                        
             for path_num in range(len(out_path)) :                    
                 for path_pos in out_path[path_num].poses :                                
                     dis = sqrt(pow(obstacle.position.x - path_pos.pose.position.x, 2) + pow(obstacle.position.y - path_pos.pose.position.y, 2))
-                    if dis < 2.5:
+                    if dis < 1.5:
                         lane_weight[path_num] = lane_weight[path_num] + 100
 
         selected_lane = lane_weight.index(min(lane_weight))    
@@ -102,7 +99,6 @@ class latticePlanner(Node):
 
         look_distance = int(vehicle_velocity * 0.2 * 2)
 
-        
         if look_distance < 20 :
             look_distance = 20                    
 
@@ -134,7 +130,7 @@ class latticePlanner(Node):
             local_end_point = det_trans_matrix.dot(world_end_point)
             world_ego_vehicle_position = np.array([[vehicle_pose_x], [vehicle_pose_y], [1]])
             local_ego_vehicle_position = det_trans_matrix.dot(world_ego_vehicle_position)
-            lane_off_set = [-4.0, -2.75, -2, 2, 2.75, 4.0]
+            lane_off_set = [-3.5, -2.75, -2, 2, 2.75, 3.5]
             local_lattice_points = []
             
             for i in range(len(lane_off_set)):

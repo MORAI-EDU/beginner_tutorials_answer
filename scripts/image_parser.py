@@ -32,17 +32,16 @@ class IMGParser(Node):
         os.system('clear')
         if not self.is_image:
             print("[1] can't subscribe '/camera/image/compressed' topic... \n    please check your Camera sensor connection")
-        else:
+        else: 
+            cv2.imshow("Image window", self.img_bgr)
+            cv2.waitKey(1)
             print("Camera sensor was connected !")
 
     def callback(self, msg):
         self.is_image = True
         
         np_arr = np.frombuffer(msg.data, np.uint8)
-        img_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        
-        cv2.imshow("Image window", img_bgr)
-        cv2.waitKey(1)
+        self.img_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
 
 def main(args=None):
