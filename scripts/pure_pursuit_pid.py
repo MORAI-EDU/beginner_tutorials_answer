@@ -5,7 +5,7 @@ import os
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from math import cos, sin, pi, sqrt, pow, atan2
+from math import cos, sin, sqrt, pow, atan2
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry, Path
 from morai_ros2_msgs.msg import CtrlCmd, EgoVehicleStatus
@@ -41,7 +41,7 @@ class PurePursuit(Node):
             reliability=ReliabilityPolicy.RELIABLE
         )
         
-        self.path_sub = self.create_subscription(Path, "lattice_path", self.path_callback, qos_profile)
+        self.path_sub = self.create_subscription(Path, "local_path", self.path_callback, qos_profile)
         self.odom_sub = self.create_subscription(Odometry, "odom", self.odom_callback, qos_profile)
         self.status_sub = self.create_subscription(EgoVehicleStatus, "ego_vehicle_status", self.status_callback, qos_profile)
 

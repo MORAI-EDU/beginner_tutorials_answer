@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys
-import time
+import os
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
@@ -36,11 +35,6 @@ class PurePursuit(Node):
     def __init__(self):
         super().__init__('pure_pursuit')
 
-        qos_profile = QoSProfile(
-            depth=5,
-            reliability=ReliabilityPolicy.RELIABLE
-        )
-
         self.global_path = Path()
         self.global_path.header.frame_id = 'map'
         
@@ -58,6 +52,10 @@ class PurePursuit(Node):
             self.global_path.poses.append(read_pose)
         file.close()
 
+        qos_profile = QoSProfile(
+            depth=5,
+            reliability=ReliabilityPolicy.RELIABLE
+        )
         #TODO: (1) subscriber, publisher 선언
         self.path_sub = self.create_subscription(Path, "lattice_path", self.path_callback, qos_profile)
         self.odom_sub = self.create_subscription(Odometry, "odom", self.odom_callback, qos_profile)

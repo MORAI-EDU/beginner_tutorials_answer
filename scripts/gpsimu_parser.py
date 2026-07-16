@@ -5,7 +5,6 @@ import os
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Imu
 from morai_ros2_msgs.msg import GPSMessage
 from nav_msgs.msg import Odometry
@@ -15,14 +14,11 @@ class GPSIMUParser(Node):
     def __init__(self):
         super().__init__('GPS_IMU_parser')
         
-        qos_profile = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT
-        )
+        qos_profile = QoSProfile(depth=5, reliability=ReliabilityPolicy.BEST_EFFORT)
         
         self.gps_sub = self.create_subscription(GPSMessage, "/gps", self.navsat_callback, qos_profile)
         self.imu_sub = self.create_subscription(Imu, "/Imu", self.imu_callback, qos_profile)
-        self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
+        self.odom_pub = self.create_publisher(Odometry, '/odom', 1)
         
         self.x, self.y = None, None
         self.is_imu = False

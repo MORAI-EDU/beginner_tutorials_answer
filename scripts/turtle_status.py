@@ -6,26 +6,21 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from turtlesim.msg import Pose
 from geometry_msgs.msg import TransformStamped
-from tf2_ros import TransformBroadcaster
+import tf2_ros
 from tf_transformations import quaternion_from_euler
 
 class TurtleListener(Node):
     def __init__(self):
         super().__init__('status_listener')
         
-        qos_profile = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT
-        )
-        
+        qos_profile = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.subscriber = self.create_subscription(Pose, '/turtle1/pose', self.statusCB, qos_profile)
-        self.br = TransformBroadcaster(self)
+        self.br = tf2_ros.TransformBroadcaster(self)
 
     def statusCB(self, data):
         print("tf broad cast")
         
         t = TransformStamped()
-        
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = 'map'
         t.child_frame_id = 'turtle'
@@ -41,7 +36,6 @@ class TurtleListener(Node):
         t.transform.rotation.w = q[3]
         
         self.br.sendTransform(t)
-
 
 def main(args=None):
     rclpy.init(args=args)

@@ -40,30 +40,29 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
-class MinimalPublisher(Node):
-
+class Talker(Node):
     def __init__(self):
         super().__init__('talker')
-        self.publisher_ = self.create_publisher(String, 'chatter', 10)
-        self.timer = self.create_timer(1.0, self.timer_callback)
+        self.publisher = self.create_publisher(String, 'chatter', 10)
+        self.timer = self.create_timer(1.0, self.timer_callback) # 1hz
 
     def timer_callback(self):
         msg = String()
         current_time = self.get_clock().now().nanoseconds / 1e9
         msg.data = "hello MORAI %s" % current_time
         self.get_logger().info(msg.data)
-        self.publisher_.publish(msg)
+        self.publisher.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
-    minimal_publisher = MinimalPublisher()
+    talker = Talker()
     
     try:
-        rclpy.spin(minimal_publisher)
+        rclpy.spin(talker)
     except KeyboardInterrupt:
         pass
     finally:
-        minimal_publisher.destroy_node()
+        talker.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':

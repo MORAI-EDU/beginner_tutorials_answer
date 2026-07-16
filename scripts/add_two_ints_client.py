@@ -4,10 +4,9 @@ import rclpy
 from rclpy.node import Node
 from beginner_tutorials.srv import AddTwoInts
 
-class MinimalClientAsync(Node):
-
+class AddTwoIntsClient(Node):
     def __init__(self):
-        super().__init__('add_two_ints_client_async')
+        super().__init__('add_two_ints_client')
         self.cli = self.create_client(AddTwoInts, 'add_two_ints')
         while not self.cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
@@ -30,17 +29,16 @@ def main(args=None):
         print("%s [x y]" % sys.argv[0])
         sys.exit(1)
 
-    minimal_client = MinimalClientAsync()
+    add_two_ints_client = AddTwoIntsClient()
     print("Requesting %s+%s" % (x, y))
     
-    response = minimal_client.send_request(x, y)
-    
+    response = add_two_ints_client.send_request(x, y)
     if response is not None:
         print("%s + %s = %s" % (x, y, response.sum))
     else:
         print("Service call failed")
 
-    minimal_client.destroy_node()
+    add_two_ints_client.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':

@@ -4,15 +4,11 @@
 import sys
 import os
 import copy
-import numpy as np
-import json
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy
 
-from math import cos, sin, sqrt, pow, atan2, pi
-from geometry_msgs.msg import Point32, PoseStamped
-from nav_msgs.msg import Odometry, Path
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_path)
