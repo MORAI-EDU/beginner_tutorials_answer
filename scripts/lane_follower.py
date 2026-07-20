@@ -44,9 +44,7 @@ class PurePursuit(Node):
         
         self.is_look_forward_point = False
         self.vehicle_length = 2.0
-        self.lfd = 20.0
-        self.min_lfd = 2.0
-        self.max_lfd = 50.0
+        self.lfd = 10.0
         self.max_steer = 32.51 * 3.14 / 180.0
 
         self.lpath = None

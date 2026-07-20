@@ -45,7 +45,7 @@ class LaneBinarize(Node):
 
         img_hsv = cv2.cvtColor(self.img_bgr, cv2.COLOR_BGR2HSV)
 
-        lower_wlane = np.array([0, 0, 185])
+        lower_wlane = np.array([0, 0, 215])
         upper_wlane = np.array([30, 60, 255])
 
         img_wlane = cv2.inRange(img_hsv, lower_wlane, upper_wlane)

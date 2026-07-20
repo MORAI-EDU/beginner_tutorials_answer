@@ -38,13 +38,13 @@ class LaneFittingNode(Node):
             qos_profile
         )
         
-        self.path_pub = self.create_publisher(Path, '/lane_path', 30)
+        self.path_pub = self.create_publisher(Path, '/lane_path', 10)
         
         self.is_image = False
         self.img_bgr = None
         self.img_lane = None
         
-        self.lower_wlane = np.array([0, 0, 185])
+        self.lower_wlane = np.array([0, 0, 215])
         self.upper_wlane = np.array([30, 60, 255])
         self.lower_ylane = np.array([10, 100, 100])
         self.upper_ylane = np.array([40, 255, 255])
@@ -55,7 +55,7 @@ class LaneFittingNode(Node):
                                        [1 - 0.01, 0.80]])
                                        
         self.bev_op = BEVTransform(params_cam=params_cam)
-        self.curve_learner = CURVEFit(order=3, lane_width=13, y_margin=1, x_range=30, min_pts=50)
+        self.curve_learner = CURVEFit(order=3, lane_width=12.5, y_margin=1, x_range=30, min_pts=50)
 
         self.timer = self.create_timer(1.0 / 10.0, self.timer_callback)
 
