@@ -32,7 +32,7 @@ class PathPub(Node):
 
         # 패키지 경로 로드
         pkg_path = get_package_share_directory('beginner_tutorials')
-        full_path = os.path.join(pkg_path, 'path', 'kcity.txt')
+        full_path = os.path.join(pkg_path, 'path', 'R_KR_PR_K-city_2025.txt')
         
         with open(full_path, 'r') as f:
             lines = f.readlines()
@@ -41,6 +41,7 @@ class PathPub(Node):
                 read_pose = PoseStamped()
                 read_pose.pose.position.x = float(tmp[0])
                 read_pose.pose.position.y = float(tmp[1])
+                read_pose.pose.position.z = float(tmp[2])
                 read_pose.pose.orientation.w = 1.0
                 self.global_path_msg.poses.append(read_pose)
 
@@ -75,6 +76,7 @@ class PathPub(Node):
                     tmp_pose = PoseStamped()
                     tmp_pose.pose.position.x = self.global_path_msg.poses[num].pose.position.x
                     tmp_pose.pose.position.y = self.global_path_msg.poses[num].pose.position.y
+                    tmp_pose.pose.position.z = self.global_path_msg.poses[num].pose.position.z
                     tmp_pose.pose.orientation.w = 1.0
                     local_path_msg.poses.append(tmp_pose)
 

@@ -10,7 +10,7 @@ sys.path.append(current_path)
 
 from lib.mgeo.class_defs import MGeoPlannerMap
 
-load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/kcity'))
+load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/R_KR_PR_K-city_2025'))
 mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)
 
 node_set = mgeo_planner_map.node_set

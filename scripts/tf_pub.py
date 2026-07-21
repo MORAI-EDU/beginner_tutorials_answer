@@ -33,6 +33,7 @@ class Ego_listener(Node):
 
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
+        self.z = msg.pose.pose.position.z
 
         self.orientation_x = msg.pose.pose.orientation.x
         self.orientation_y = msg.pose.pose.orientation.y
@@ -48,7 +49,7 @@ class Ego_listener(Node):
         
         t.transform.translation.x = self.x
         t.transform.translation.y = self.y
-        t.transform.translation.z = 1.0
+        t.transform.translation.z = self.z
         
         t.transform.rotation.x = self.orientation_x
         t.transform.rotation.y = self.orientation_y

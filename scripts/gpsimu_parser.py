@@ -52,6 +52,7 @@ class GPSIMUParser(Node):
     def navsat_callback(self, gps_msg):
         self.lat = gps_msg.latitude
         self.lon = gps_msg.longitude
+        self.alt = gps_msg.altitude
         self.e_o = gps_msg.east_offset
         self.n_o = gps_msg.north_offset
         self.is_gps = True
@@ -69,7 +70,7 @@ class GPSIMUParser(Node):
         self.odom_msg.header.stamp = self.get_clock().now().to_msg()
         self.odom_msg.pose.pose.position.x = self.x
         self.odom_msg.pose.pose.position.y = self.y
-        self.odom_msg.pose.pose.position.z = 0.0
+        self.odom_msg.pose.pose.position.z = self.alt
 
     def imu_callback(self, data):
         if data.orientation.w == 0:

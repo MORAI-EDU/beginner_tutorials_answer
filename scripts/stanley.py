@@ -39,7 +39,7 @@ class StanleyController(Node):
         self.target_vel = 15.0
         self.current_vel = 0.0
         self.is_look_forward_point = False
-        self.k = 0.8 # Stanley 제어 게인 (Stanley constant)
+        self.k = 0.9 # Stanley 제어 게인 (Stanley constant)
         self.v_t = 1.0 # 횡오차 계산 시 분모가 0이 되는 것을 방지하기 위한 속도 상수
         self.max_steer = 32.51 * 3.14 / 180.0
         

@@ -39,7 +39,7 @@ class PurePursuit(Node):
         self.global_path.header.frame_id = 'map'
         
         pkg_path = get_package_share_directory('beginner_tutorials')
-        full_path = os.path.join(pkg_path, 'path', 'kcity.txt')
+        full_path = os.path.join(pkg_path, 'path', 'R_KR_PR_K-city_2025.txt')
         
         file = open(full_path, 'r')
         lines = file.readlines()

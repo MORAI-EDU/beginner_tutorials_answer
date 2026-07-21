@@ -38,7 +38,7 @@ class DijkstraPathPub(Node):
 
         self.global_path_pub = self.create_publisher(Path, '/global_path', 1)
 
-        load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/kcity'))
+        load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/R_KR_PR_K-city_2025'))
         mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)
 
         node_set = mgeo_planner_map.node_set
@@ -49,8 +49,8 @@ class DijkstraPathPub(Node):
 
         self.global_planner = Dijkstra(self.nodes, self.links)
 
-        self.start_node = 'A119BS010184'
-        self.end_node = 'A119BS010148'
+        self.start_node = 'A1256W000792'
+        self.end_node = 'A1256W000034'
 
         self.global_path_msg = self.calc_dijkstra_path_node(self.start_node, self.end_node)
 
@@ -69,11 +69,13 @@ class DijkstraPathPub(Node):
         for waypoint in path["point_path"]:
             path_x = waypoint[0]
             path_y = waypoint[1]
+            path_z = waypoint[2]
             read_pose = PoseStamped()
             read_pose.pose.position.x = float(path_x)
             read_pose.pose.position.y = float(path_y)
+            read_pose.pose.position.z = float(path_z)
             read_pose.pose.orientation.w = 1.0
-            out_path.poses.append(read_pose)   
+            out_path.poses.append(read_pose)
 
         return out_path
 
@@ -192,7 +194,7 @@ class Dijkstra:
         for link_id in link_path:
             link = self.links[link_id]
             for point in link.points:
-                point_path.append([point[0], point[1], 0])
+                point_path.append([point[0], point[1], point[2]])
 
         return True, {'node_path': node_path, 'link_path': link_path, 'point_path': point_path}
 

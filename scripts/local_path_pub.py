@@ -52,6 +52,7 @@ class path_pub(Node):
                         tmp_pose = PoseStamped()
                         tmp_pose.pose.position.x = self.global_path_msg.poses[num].pose.position.x
                         tmp_pose.pose.position.y = self.global_path_msg.poses[num].pose.position.y
+                        tmp_pose.pose.position.z = self.global_path_msg.poses[num].pose.position.z
                         tmp_pose.pose.orientation.w = 1.0
                         local_path_msg.poses.append(tmp_pose)
                 
@@ -60,6 +61,7 @@ class path_pub(Node):
                         tmp_pose = PoseStamped()
                         tmp_pose.pose.position.x = self.global_path_msg.poses[num].pose.position.x
                         tmp_pose.pose.position.y = self.global_path_msg.poses[num].pose.position.y
+                        tmp_pose.pose.position.z = self.global_path_msg.poses[num].pose.position.z
                         tmp_pose.pose.orientation.w = 1.0
                         local_path_msg.poses.append(tmp_pose)
 

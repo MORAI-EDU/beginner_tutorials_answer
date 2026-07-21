@@ -20,11 +20,11 @@ class latticePlanner(Node):
         self.status_sub = self.create_subscription(EgoVehicleStatus, "/ego_vehicle_status", self.status_callback, 5)
         self.object_sub = self.create_subscription(ObjectStatusList, "/object_status", self.object_callback, 5)
 
-        self.lattice_path_pub = self.create_publisher(Path, '/lattice_path', 1)
+        self.lattice_path_pub = self.create_publisher(Path, '/lattice_path', 5)
 
         self.lattice_pubs = []
         for i in range(6):
-            self.lattice_pubs.append(self.create_publisher(Path, f'/lattice_path_{i+1}', 1))
+            self.lattice_pubs.append(self.create_publisher(Path, f'/lattice_path_{i+1}', 5))
 
         self.is_path = False
         self.is_status = False
@@ -79,19 +79,19 @@ class latticePlanner(Node):
 
         return selected_lane
 
-    def path_callback(self,msg):
+    def path_callback(self, msg):
         self.is_path = True
         self.local_path = msg  
         
-    def status_callback(self,msg):
+    def status_callback(self, msg):
         self.is_status = True
         self.status_msg = msg
 
-    def object_callback(self,msg):
+    def object_callback(self, msg):
         self.is_obj = True
         self.object_data = msg
 
-    def latticePlanner(self,ref_path, vehicle_status):
+    def latticePlanner(self, ref_path, vehicle_status):
         out_path = []
         vehicle_pose_x = vehicle_status.position.x
         vehicle_pose_y = vehicle_status.position.y
@@ -176,7 +176,7 @@ class latticePlanner(Node):
                     read_pose = PoseStamped()
                     read_pose.pose.position.x = float(global_result[0][0])
                     read_pose.pose.position.y = float(global_result[1][0])
-                    read_pose.pose.position.z = 0.0
+                    read_pose.pose.position.z = ref_path.poses[i].pose.position.z
                     read_pose.pose.orientation.x = 0.0
                     read_pose.pose.orientation.y = 0.0
                     read_pose.pose.orientation.z = 0.0
@@ -200,7 +200,7 @@ class latticePlanner(Node):
                         read_pose = PoseStamped()
                         read_pose.pose.position.x = float(global_result[0][0])
                         read_pose.pose.position.y = float(global_result[1][0])
-                        read_pose.pose.position.z = 0.0
+                        read_pose.pose.position.z = ref_path.poses[i].pose.position.z
                         read_pose.pose.orientation.x = 0.0
                         read_pose.pose.orientation.y = 0.0
                         read_pose.pose.orientation.z = 0.0

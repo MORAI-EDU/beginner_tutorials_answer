@@ -21,7 +21,7 @@ class GetMGeo(Node):
         self.link_pub = self.create_publisher(PointCloud, 'link', 1)
         self.node_pub = self.create_publisher(PointCloud, 'node', 1)
 
-        load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/kcity'))
+        load_path = os.path.normpath(os.path.join(current_path, 'lib/mgeo_data/R_KR_PR_K-city_2025'))
         mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)
 
         node_set = mgeo_planner_map.node_set
